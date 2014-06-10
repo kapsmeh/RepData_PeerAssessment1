@@ -3,7 +3,7 @@
 
 ## Loading and preprocessing the data
 ```{r load, echo=TRUE}
-data<-read.csv("activity.csv")
+data<-read.csv("activity.csv", colClasses = c("numeric", "Date", "numeric"))
 #deleting NA for preprocessing
 data_preprocess<-data[complete.cases(data$steps),]
 
@@ -12,24 +12,49 @@ data_preprocess<-data[complete.cases(data$steps),]
 
 ## What is mean total number of steps taken per day?
 ```{r mean, echo=TRUE}
-hist(data_preprocess$steps)
-mean_steps<-mean(data_preprocess$steps)
-median_steps<-median(data_preprocess$steps)
+total<-tapply(data_preprocess$steps,data_preprocess$date,sum);
+plot(1:length(total),as.vector(total),type="h",col = "red", lwd = 4,xlab="days",ylab="steps");
+mean_steps<-mean(as.vector(total))
+median_steps<-median(as.vector(total))
 ```
 ### The mean is `r mean_steps` and median is `r median_steps`.
 
 ## What is the average daily activity pattern?
 ```{r daily, echo=TRUE}
 average_activity<-tapply(data_preprocess$steps,data_preprocess$interval,mean,simplify=FALSE);
-plot(names(average_activity),average_activity,type="l");
+plot(names(average_activity),average_activity,type="l",xaxt = "n",xlab="interval",ylab="average steps");
 ```
 ### The maximum number of steps is with interval of `r names(which.max(average_activity))`
 
 ## Imputing missing values
 ```{r missing,echo=TRUE}
 ip_missing<-nrow(data)-sum(complete.cases(data))
+data_without_NA<-data
+#replace NA's with 0.
+data_without_NA[!complete.cases(data_without_NA$steps),1]<-0;
+total<-tapply(data_without_NA$steps,data_without_NA$date,sum);
+plot(1:length(total),as.vector(total),type="h",col = "green", lwd = 4,xlab="days",ylab="steps");
+mean_steps<-mean(as.vector(total))
+median_steps<-median(as.vector(total))
 ```
 ### The number of missing values are `r ip_missing`.
-
+### The new mean is `r mean_steps` and median is `r median_steps`.
+### Few points to note 
+* The mean and median changed i.e. decreased as of no NA's.
+* Days in the histogram have increased because of no NA's.
 
 ## Are there differences in activity patterns between weekdays and weekends?
+```{r weekday,echo=TRUE}
+library(ggplot2)
+index<-grepl("Sunday",weekdays(data_without_NA$date),ignore.case=TRUE) | grepl("Saturday",weekdays(data_without_NA$date),ignore.case=TRUE);
+fweek = factor(index,labels=c("weekday","weekend"));
+datawithweek<-cbind(data_without_NA,fweek);
+
+X<-aggregate(x = datawithweek[,1], by = list(datawithweek$interval,datawithweek$fweek), FUN = "mean");
+names(X)<-c("interval","fweek","steps")
+g<-ggplot(X,aes(interval,  steps))+geom_line()
+g<-g+geom_point(aes(color = fweek),size = 2, alpha = 1/2)
+g<-g+facet_grid(fweek~.) 
+g<-g+labs(x = "Interval", y = "Number of steps") 
+print(g)
+```
