@@ -29,7 +29,7 @@ median_steps<-median(as.vector(total))
 
 ```r
 average_activity<-tapply(data_preprocess$steps,data_preprocess$interval,mean,simplify=FALSE);
-plot(names(average_activity),average_activity,type="l",xaxt = "n",xlab="interval",ylab="average steps");
+plot(names(average_activity),average_activity,type="l",xlab="interval",ylab="average steps");
 ```
 
 ![plot of chunk daily](figure/daily.png) 
@@ -40,8 +40,20 @@ plot(names(average_activity),average_activity,type="l",xaxt = "n",xlab="interval
 ```r
 ip_missing<-nrow(data)-sum(complete.cases(data))
 data_without_NA<-data
-#replace NA's with 0.
-data_without_NA[!complete.cases(data_without_NA$steps),1]<-0;
+#replace NA's with average daily activity pattern.
+df<-data.frame(interval=names(average_activity),steps=average_activity)
+count<-0;
+for(i in 1:nrow(data_without_NA)){
+    if(is.na(data_without_NA$steps[i])){
+      for(j in 1:nrow(df)){
+        if(df$interval[j]==data_without_NA$interval[i]){
+          count=count+1;
+          data_without_NA$steps[i]<-as.numeric(df$steps[j]);     
+          break;
+        }        
+      }    
+    }
+  }
 total<-tapply(data_without_NA$steps,data_without_NA$date,sum);
 plot(1:length(total),as.vector(total),type="h",col = "green", lwd = 4,xlab="days",ylab="steps");
 ```
@@ -52,10 +64,12 @@ plot(1:length(total),as.vector(total),type="h",col = "green", lwd = 4,xlab="days
 mean_steps<-mean(as.vector(total))
 median_steps<-median(as.vector(total))
 ```
+### We have replaced NA's in "steps" with average daily activity pattern.
 ### The number of missing values are 2304.
-### The new mean is 9354.2295 and median is 1.0395 &times; 10<sup>4</sup>.
+### The new mean is 1.0766 &times; 10<sup>4</sup> and median is 1.0766 &times; 10<sup>4</sup>.
 ### Few points to note 
-* The mean and median changed i.e. decreased as of no NA's.
+* The mean remains same.
+* The median is changed.
 * Days in the histogram have increased because of no NA's.
 
 ## Are there differences in activity patterns between weekdays and weekends?
